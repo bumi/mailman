@@ -1,0 +1,55 @@
+Mailman
+=============
+
+Mailman is a little script that helps you dealing with imap mail accounts. 
+
+Example 1:
+--------------
+
+    mailman = Mailman.new({
+        :server => "...",
+        :port => 143,
+        :use_ssl => false,
+        :username => "...",
+        :password => "...",
+        :logger =>Logger.new("log/mail_import.log"), 
+        :on_exception => Proc.new{|e| HoptoadNotifier.notify(e)}}
+      )
+  
+    mailman.with("INBOX") do
+      emails(["SUBJECT", "keyword"]).each do |message_id, email|
+        if Importers::Mail.receive(email)
+          copy(message_id,"INBOX.imported")
+          store(message_id, [:Seen, :Deleted])
+          log "successfully imported email ##{message_id}"
+        else
+          log "could not import email ##{message_id}"
+          HoptoadNotifier.notify({ :error_class => "Mailman Import Error #{message_id}", :request => {:params => {:message_id => message_id }}})
+          copy(message_id,"INBOX.not_imported")
+          store(message_id, [:Seen, :Deleted])
+        end
+        expunge
+      end
+    end
+  
+
+Example 2:
+--------------
+  
+    mailman = Mailman.new({
+        :server => "...",
+        :port => 143,
+        :use_ssl => false,
+        :username => "...",
+        :password => "...",
+        :logger =>Logger.new("log/mail_import.log"), 
+        :on_exception => Proc.new{|e| HoptoadNotifier.notify(e)}}
+      )
+  
+    mailman.login
+    mailman.select "INBOX"
+    mailman.emails.each do |id,email|
+      ...
+    end
+    mailman.quit
+  
